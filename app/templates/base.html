@@ -1,0 +1,54 @@
+{% from '_macros.html' import icon, reader_chip with context %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <meta name="color-scheme" content="light">
+  <title>{% block title %}Dashboard{% endblock %} · Smart School Bag</title>
+  <link rel="icon" href="{{ static_url('favicon.svg') }}" type="image/svg+xml">
+  <link rel="stylesheet" href="{{ static_url('css/app.css') }}">
+  <script src="{{ static_url('js/common.js') }}" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <div class="banner" id="conn-banner" role="alert" hidden>Connection to the school bag was lost. Trying again…</div>
+  <header class="topbar">
+    <div class="topbar__inner">
+      <a class="brand" href="{{ url_for('pages.dashboard') }}">{{ icon('bag') }}<span>Smart School Bag</span></a>
+      {% set here = request.endpoint or '' %}
+      <nav class="nav" aria-label="Main">
+        <a href="{{ url_for('pages.dashboard') }}" {% if here == 'pages.dashboard' %}aria-current="page"{% endif %}>{{ icon('layout') }}<span>Dashboard</span></a>
+        {% if demo_enabled %}<a href="{{ url_for('pages.exhibition') }}" {% if here == 'pages.exhibition' %}aria-current="page"{% endif %}>{{ icon('monitor') }}<span>Exhibition</span></a>{% endif %}
+        <a href="{{ url_for('admin.books') }}" {% if here == 'admin.books' %}aria-current="page"{% endif %}>{{ icon('book') }}<span>Books</span></a>
+        <a href="{{ url_for('admin.timetable') }}" {% if here == 'admin.timetable' %}aria-current="page"{% endif %}>{{ icon('calendar') }}<span>Timetable</span></a>
+        <a href="{{ url_for('pages.history') }}" {% if here in ('pages.history', 'pages.session_detail') %}aria-current="page"{% endif %}>{{ icon('history') }}<span>History</span></a>
+        <a href="{{ url_for('admin.settings') }}" {% if here == 'admin.settings' %}aria-current="page"{% endif %}>{{ icon('sliders') }}<span>Settings</span></a>
+      </nav>
+      <div class="chips">
+        {{ reader_chip(reader) }}
+        <a class="chip chip--demo" id="chip-demo" href="{{ url_for('pages.exhibition') }}" {% if not demo_enabled %}hidden{% endif %}>{{ icon('monitor') }}<span><span class="chip__full">Demo mode</span><span class="chip__short">Demo</span>: <strong>Active</strong></span></a>
+      </div>
+    </div>
+  </header>
+  <main id="main" tabindex="-1">
+    {% block content %}{% endblock %}
+  </main>
+  <div class="toasts" id="toasts" role="status" aria-live="polite">
+    {% for category, message in get_flashed_messages(with_categories=true) %}
+      <div class="toast toast--{{ 'warning' if category == 'warning' else category }}" data-flash><span class="toast__text">{{ message }}</span></div>
+    {% endfor %}
+  </div>
+  <dialog id="confirm-dialog" aria-labelledby="confirm-title">
+    <form method="dialog">
+      <div class="dialog__body"><h2 id="confirm-title">Are you sure?</h2><p id="confirm-message" class="muted"></p></div>
+      <div class="dialog__actions">
+        <button class="btn" value="cancel" id="confirm-cancel">Cancel</button>
+        <button class="btn btn-primary" value="ok" id="confirm-ok">Confirm</button>
+      </div>
+    </form>
+  </dialog>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import icon, csrf with context %}
+{% block title %}Admin PIN{% endblock %}
+{% block content %}
+<div class="page"><section class="panel centered stack">
+  <h1>{{ icon('lock') }} Admin PIN</h1>
+  <p class="muted">Books, Timetable, Settings and backups are protected. The dashboard and history stay open.</p>
+  <form method="post" class="stack">
+    {{ csrf() }}<input type="hidden" name="next" value="{{ next_url }}">
+    <div class="field"><label class="label" for="pin">PIN</label>
+      <input class="input" id="pin" name="pin" type="password" inputmode="numeric" autocomplete="current-password" autofocus required></div>
+    <button class="btn btn-primary btn-lg" type="submit">Unlock</button>
+  </form>
+</section></div>
+{% endblock %}

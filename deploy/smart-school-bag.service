@@ -1,0 +1,34 @@
+# Template. scripts/install.sh fills in __USER__ and __APP_DIR__ and installs it.
+[Unit]
+Description=Smart School Bag (Python + RFID packing assistant)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=__USER__
+Group=__USER__
+# Needed to read a USB keyboard-style reader (input) or a serial reader (dialout).
+SupplementaryGroups=input dialout
+WorkingDirectory=__APP_DIR__
+Environment=PYTHONUNBUFFERED=1
+Environment=SCHOOLBAG_DATA_DIR=__APP_DIR__/data
+EnvironmentFile=-/etc/default/smart-school-bag
+ExecStart=__APP_DIR__/.venv/bin/python run.py
+Restart=on-failure
+RestartSec=5
+
+# Hardening: the app only needs to write into its own data folder.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=__APP_DIR__/data
+
+# Logs go to the journal:  journalctl -u smart-school-bag -f
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=smart-school-bag
+
+[Install]
+WantedBy=multi-user.target

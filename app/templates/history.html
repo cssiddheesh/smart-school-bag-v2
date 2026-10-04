@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import icon, csrf, pager, outcome_badge, source_badge with context %}
+{% block title %}History{% endblock %}
+{% block content %}
+<div class="page">
+  <div class="page-head"><div><h1>History</h1><p>Every card read and every packing session, with who sent it: a real card or a simulation.</p></div>
+    <form method="post" action="{{ url_for('admin.history_clear') }}" data-confirm="Delete all scan history and finished sessions? A backup is saved first. An active session is kept." data-confirm-label="Clear history">
+      {{ csrf() }}<button class="btn btn-danger" type="submit" {% if not totals.scans and not totals.sessions %}disabled{% endif %}>{{ icon('trash') }}Clear history</button></form></div>
+  <div class="stats">
+    <div class="stat"><strong>{{ totals.scans }}</strong><span>total scans</span></div>
+    <div class="stat"><strong>{{ totals.books }}</strong><span>different books scanned</span></div>
+    <div class="stat"><strong>{{ totals.sessions }}</strong><span>packing sessions</span></div>
+    <div class="stat"><strong>{{ totals.completed }}</strong><span>completed (bag ready)</span></div>
+  </div>
+  <nav class="tabs" aria-label="History view">
+    <a href="{{ url_for('pages.history') }}" {% if view == 'scans' %}aria-current="page"{% endif %}>Scans</a>
+    <a href="{{ url_for('pages.history', view='sessions') }}" {% if view == 'sessions' %}aria-current="page"{% endif %}>Sessions</a>
+  </nav>
+  <form method="get" class="panel form-grid" aria-label="Filters">
+    <input type="hidden" name="view" value="{{ view }}">
+    {% if view == 'scans' %}<div class="field"><label class="label" for="f-q">Search book</label><input class="input" id="f-q" name="q" value="{{ filters.q }}" maxlength="60"></div>{% endif %}
+    <div class="field"><label class="label" for="f-day">Day</label><select class="select" id="f-day" name="day"><option value="">All days</option>{% for d in days %}<option value="{{ d.id }}" {% if filters.day == d.id %}selected{% endif %}>{{ d.name }}</option>{% endfor %}</select></div>
+    {% if view == 'scans' %}
+    <div class="field"><label class="label" for="f-src">Source</label><select class="select" id="f-src" name="source"><option value="">All sources</option>{% for s in sources %}<option value="{{ s }}" {% if filters.source == s %}selected{% endif %}>{{ 'Simulated' if s == 'SIMULATION' else 'Real card' }}</option>{% endfor %}</select></div>
+    <div class="field"><label class="label" for="f-out">Result</label><select class="select" id="f-out" name="outcome"><option value="">All results</option>{% for key, label in outcomes %}<option value="{{ key }}" {% if filters.outcome == key %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+    <div class="field"><label class="label" for="f-ses">Session number</label><input class="input" id="f-ses" name="session" inputmode="numeric" value="{{ filters.session or '' }}"></div>
+    {% else %}
+    <div class="field"><label class="label" for="f-st">Status</label><select class="select" id="f-st" name="status"><option value="">Any status</option>{% for s in statuses %}<option value="{{ s }}" {% if filters.status == s %}selected{% endif %}>{{ s|capitalize }}</option>{% endfor %}</select></div>
+    {% endif %}
+    <div class="row"><button class="btn btn-primary" type="submit">Apply filters</button><a class="btn btn-quiet" href="{{ url_for('pages.history', view=view) }}">Reset</a></div>
+  </form>
+  <section class="panel panel--flush" aria-label="Results">
+    {% if not data.rows %}
+      <div class="empty">{{ icon('history') }}<p>{{ 'Nothing matches these filters.' if (filters.q or filters.day or filters.source or filters.outcome or filters.session or filters.status) else 'No history yet. Scan a book to see it here.' }}</p></div>
+    {% elif view == 'scans' %}
+    <div class="table-wrap"><table class="table--stack"><thead><tr><th>Time</th><th>Book</th><th>Result</th><th>Source</th><th>Session</th></tr></thead><tbody>
+      {% for r in data.rows %}<tr>
+        <td data-label="Time">{{ r.time_label }}</td>
+        <td data-label="Book">{{ r.book_name or 'Unknown card' }}{% if not r.book_name %} <span class="muted small uid">({{ r.rfid_uid[-4:] }})</span>{% endif %}</td>
+        <td data-label="Result">{{ outcome_badge(r.outcome, outcome_labels) }}</td>
+        <td data-label="Source">{{ source_badge(r.source) }}</td>
+        <td data-label="Session">{% if r.session_id %}<a href="{{ url_for('pages.session_detail', session_id=r.session_id) }}">#{{ r.session_id }} {{ r.day_name }}</a>{% else %}<span class="muted">none</span>{% endif %}</td></tr>{% endfor %}
+    </tbody></table></div>
+    {% else %}
+    <div class="table-wrap"><table class="table--stack"><thead><tr><th>Session</th><th>Started</th><th>Duration</th><th>Packed</th><th>Scans</th><th>Status</th></tr></thead><tbody>
+      {% for r in data.rows %}<tr>
+        <td data-label="Session"><a href="{{ url_for('pages.session_detail', session_id=r.id) }}">#{{ r.id }} {{ r.day_name }}</a></td>
+        <td data-label="Started">{{ r.started_label }}</td><td data-label="Duration">{{ r.duration_label }}</td>
+        <td data-label="Packed">{{ r.packed_count }} of {{ r.required_count }}</td>
+        <td data-label="Scans">{{ r.scan_count }}{% if r.simulated_count %} <span class="badge badge--sim">{{ r.simulated_count }} simulated</span>{% endif %}</td>
+        <td data-label="Status"><span class="badge {{ {'completed': 'badge--ok', 'active': 'badge--extra', 'abandoned': 'badge--warn'}[r.status] }}">{{ {'completed': 'Completed', 'active': 'In progress', 'abandoned': 'Reset or switched'}[r.status] }}</span></td></tr>{% endfor %}
+    </tbody></table></div>
+    {% endif %}
+    {{ pager(data, 'pages.history', pager_params) }}
+  </section>
+</div>
+{% endblock %}

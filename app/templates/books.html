@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import icon, csrf, return_to with context %}
+{% block title %}Books{% endblock %}
+{% block content %}
+<div class="page">
+  <div class="page-head"><div><h1>Books</h1>
+    <p>Each book has one RFID card. Disabled books are never required and their cards are ignored.{% if day %} “Today” means {{ day.name }}.{% endif %}</p></div></div>
+  <section class="panel" aria-labelledby="add-title"><h2 id="add-title">Add a book</h2>
+    <form method="post" action="{{ url_for('admin.book_add') }}" class="inline-form">{{ csrf() }}{{ return_to() }}
+      <div class="field"><label class="label" for="new-name">Book name</label><input class="input" id="new-name" name="name" maxlength="60" required></div>
+      <button class="btn btn-primary" type="submit">{{ icon('plus') }}Add book</button></form></section>
+  <section class="panel panel--flush" aria-label="All books">
+    {% for book in books %}
+    <div class="book-row">
+      <div class="book-row__head">
+        <div><div class="book-row__name">{{ book.name }}</div>
+          <div class="small muted">Card UID: {% if book.rfid_uid %}<span class="uid">{{ book.rfid_uid }}</span>{% else %}none{% endif %}</div></div>
+        <div class="badges">
+          <span class="badge {{ 'badge--ok' if book.is_active else 'badge--warn' }}">{{ 'Active' if book.is_active else 'Disabled' }}</span>
+          <span class="badge {{ 'badge--ok' if book.assigned else 'badge--warn' }}">{{ 'Card assigned' if book.assigned else 'No card' }}</span>
+          <span class="badge {{ 'badge--extra' if book.required_today else '' }}">{{ 'Required today' if book.required_today else 'Not required today' }}</span>
+        </div>
+        <span></span>
+      </div>
+      <details class="manage"><summary>Manage {{ book.name }}</summary>
+        <div class="manage__body">
+          <form method="post" action="{{ url_for('admin.book_rename', book_id=book.id) }}" class="inline-form">{{ csrf() }}{{ return_to() }}
+            <div class="field"><label class="label" for="name-{{ book.id }}">Name</label><input class="input" id="name-{{ book.id }}" name="name" value="{{ book.name }}" maxlength="60" required></div>
+            <button class="btn" type="submit">{{ icon('edit') }}Save name</button></form>
+          <form method="post" action="{{ url_for('admin.book_assign_uid', book_id=book.id) }}" class="inline-form" data-uid-form
+                {% if book.rfid_uid %}data-confirm="Replace the card for {{ book.name }}? The old card will stop working." data-confirm-label="Replace card"{% endif %}>
+            {{ csrf() }}{{ return_to() }}
+            <div class="field"><label class="label" for="uid-{{ book.id }}">{{ 'Replace card UID' if book.rfid_uid else 'Card UID' }}</label>
+              <input class="input uid" id="uid-{{ book.id }}" name="rfid_uid" autocomplete="off" spellcheck="false" maxlength="40" placeholder="Type it, or press Scan card" required>
+              <span class="hint" data-capture-hint>4–32 letters or digits. Separators are ignored.</span></div>
+            <button class="btn" type="button" data-capture>{{ icon('card') }}Scan card</button>
+            <button class="btn btn-primary" type="submit">Save card</button></form>
+          {% if demo_enabled %}<button class="btn btn-quiet btn-sm" type="button" data-sim-card hidden>{{ icon('monitor') }}Simulate a card (demo)</button>{% endif %}
+          <div class="row">
+            {% if book.rfid_uid %}<form method="post" action="{{ url_for('admin.book_remove_uid', book_id=book.id) }}" data-confirm="Remove the card from {{ book.name }}?" data-confirm-label="Remove card">{{ csrf() }}{{ return_to() }}<button class="btn" type="submit">Remove card</button></form>{% endif %}
+            <form method="post" action="{{ url_for('admin.book_set_active', book_id=book.id) }}">{{ csrf() }}{{ return_to() }}<input type="hidden" name="active" value="{{ 0 if book.is_active else 1 }}"><button class="btn" type="submit">{{ 'Disable book' if book.is_active else 'Enable book' }}</button></form>
+            <form method="post" action="{{ url_for('admin.book_delete', book_id=book.id) }}" data-confirm="Delete {{ book.name }}? This only works for books that were never used." data-confirm-label="Delete book">{{ csrf() }}{{ return_to() }}<button class="btn btn-danger" type="submit">{{ icon('trash') }}Delete</button></form>
+          </div>
+        </div></details>
+    </div>
+    {% else %}
+    <div class="empty">{{ icon('book') }}<p>No books yet. Add your first book above, then assign its card.</p></div>
+    {% endfor %}
+  </section>
+</div>
+{% endblock %}
+{% block scripts %}<script src="{{ static_url('js/books.js') }}" defer></script>{% endblock %}

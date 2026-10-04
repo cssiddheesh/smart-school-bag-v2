@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import icon, outcome_badge, source_badge with context %}
+{% block title %}Session #{{ summary.session.id }}{% endblock %}
+{% block content %}
+{% set s = summary.session %}
+<div class="page">
+  <div class="page-head"><div><h1>Session #{{ s.id }} · {{ s.day_name }}</h1>
+    <p>Started {{ s.started_at|localtime }}{% if s.completed_at %}, ended {{ s.completed_at|localtime }}{% endif %}.</p></div>
+    <a class="btn" href="{{ url_for('pages.history', view='sessions') }}">All sessions</a></div>
+  <div class="stats">
+    <div class="stat"><strong>{{ summary.packed_count }} of {{ summary.required_count }}</strong><span>books packed ({{ summary.percentage }}%)</span></div>
+    <div class="stat"><strong>{{ summary.duration_label }}</strong><span>duration</span></div>
+    <div class="stat"><strong>{{ summary.counts.total }}</strong><span>scans ({{ summary.counts.duplicate }} duplicate)</span></div>
+    <div class="stat"><strong>{{ {'completed': 'Completed', 'active': 'In progress', 'abandoned': 'Reset or switched'}[s.status] }}</strong><span>status</span></div>
+  </div>
+  {% if summary.has_simulated %}<div class="alert alert--info">{{ icon('monitor') }}<p>{% if summary.has_real %}This session mixes real and simulated scans.{% else %}All scans in this session were simulated.{% endif %}</p></div>{% endif %}
+  <div class="grid-2">
+    <section class="panel"><h2>Required books</h2>
+      <ul class="books">{% for r in summary.required %}<li class="{{ 'is-present' if r.present else 'is-missing' }}">{{ icon('check-circle' if r.present else 'alert') }}<span class="name">{{ r.name }}</span><span class="badge {{ 'badge--ok' if r.present else 'badge--warn' }}">{{ 'PRESENT' if r.present else 'MISSING' }}</span></li>{% endfor %}</ul>
+      {% if summary.extras %}<p class="small muted">Not required that day: {{ summary.extras|join(', ') }}</p>{% endif %}</section>
+    <section class="panel panel--flush"><h2 class="panel__title">Scans</h2>
+      {% if summary.scans %}<div class="table-wrap"><table class="table--stack"><thead><tr><th>Time</th><th>Book</th><th>Result</th><th>Source</th></tr></thead><tbody>
+        {% for r in summary.scans %}<tr><td data-label="Time">{{ r.scanned_at|localtime('%H:%M:%S') }}</td><td data-label="Book">{{ r.book_name or 'Unknown card' }}</td><td data-label="Result">{{ outcome_badge(r.outcome, outcome_labels) }}</td><td data-label="Source">{{ source_badge(r.source) }}</td></tr>{% endfor %}</tbody></table></div>
+      {% else %}<div class="empty"><p>No scans in this session.</p></div>{% endif %}</section>
+  </div>
+</div>
+{% endblock %}

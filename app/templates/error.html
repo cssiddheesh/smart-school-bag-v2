@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import icon with context %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="page"><section class="panel centered">
+  <div class="empty">{{ icon('alert') }}
+    <h1>{{ title }}</h1>
+    <p>{{ message }}</p>
+    {% if ref %}<p class="small">Reference: <span class="raw">{{ ref }}</span> (quote this if you ask for help)</p>{% endif %}
+    <a class="btn btn-primary" href="{{ url_for('pages.dashboard') }}">Back to dashboard</a>
+  </div>
+</section></div>
+{% endblock %}

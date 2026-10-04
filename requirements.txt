@@ -1,0 +1,4 @@
+# Runtime dependencies (pure Python, no compilers needed on Raspberry Pi OS)
+Flask>=3.1,<4
+waitress>=3.0,<4     # production-grade server; run.py falls back to Flask's server if missing
+tzdata>=2024.1       # timezone data (Raspberry Pi OS Lite usually has it; this guarantees it)

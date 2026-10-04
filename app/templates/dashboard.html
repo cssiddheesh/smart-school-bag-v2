@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import icon with context %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<div class="page" data-page="dashboard">
+  <div class="dash-head">
+    <div class="dash-day field">
+      <label class="label" for="day-select">School day{% if state.student_name %} · {{ state.student_name }}{% endif %}</label>
+      <select class="select select--lg" id="day-select"></select>
+    </div>
+    <div class="dash-actions">
+      <button type="button" class="btn btn-primary btn-lg" data-action="start" hidden>{{ icon('play') }}Start packing</button>
+      <button type="button" class="btn btn-primary btn-lg" data-action="complete" hidden>{{ icon('check') }}Complete session</button>
+      <button type="button" class="btn btn-lg" data-action="reset" hidden>{{ icon('refresh') }}Reset</button>
+    </div>
+  </div>
+  {% include 'partials/band.html' %}
+  <div class="grid-2">
+    <section class="panel" aria-labelledby="checklist-title">
+      <h2 id="checklist-title">Books for the day</h2>
+      <div id="checklist"><p class="muted">Loading…</p></div>
+    </section>
+    <div class="stack">
+      <section class="panel" aria-labelledby="scan-title"><h2 id="scan-title">Last scan</h2><div id="last-scan" aria-live="polite"></div></section>
+      <section class="panel" aria-labelledby="session-title"><h2 id="session-title">Session</h2><div id="session-info"></div></section>
+    </div>
+  </div>
+</div>
+{% include 'partials/summary_dialog.html' %}
+<script type="application/json" id="initial-state">{{ state|tojson }}</script>
+{% endblock %}
+{% block scripts %}<script src="{{ static_url('js/live.js') }}" defer></script>{% endblock %}

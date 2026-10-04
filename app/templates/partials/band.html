@@ -1,0 +1,14 @@
+{# Status band: filled in by live.js from /api/state. Server renders only a neutral skeleton. #}
+<section class="band band--idle {{ band_class|default('') }}" id="band" aria-labelledby="band-status">
+  <div>
+    <p class="band__day" id="band-day">&nbsp;</p>
+    <h1 class="band__status" id="band-status" aria-live="polite">Loading…</h1>
+    <p class="band__detail" id="band-detail"></p>
+  </div>
+  <div>
+    <p class="band__count"><strong id="band-packed">0</strong> of <span id="band-required">0</span> books packed</p>
+    <ol class="segments" id="band-segments" aria-hidden="true"></ol>
+    <p class="band__pct" id="band-pct">0%</p>
+  </div>
+</section>
+<noscript><div class="alert alert--warn">JavaScript is needed to show live packing status.</div></noscript>

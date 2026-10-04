@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import icon with context %}
+{% block title %}Exhibition mode{% endblock %}
+{% block content %}
+<div class="page" data-page="exhibition">
+  <div class="page-head">
+    <div><h1>Exhibition mode</h1>
+      <p>Every button here sends a <strong>simulated</strong> card through the same pipeline as the real reader. Simulated scans are labelled everywhere.</p></div>
+    <button type="button" class="btn btn-lg" data-action="reset" data-always>{{ icon('refresh') }}Reset session</button>
+  </div>
+  <div class="stack" aria-labelledby="day-label">
+    <h2 id="day-label">1. Choose the day</h2>
+    <div class="day-pills" id="day-pills" role="group" aria-label="School day"></div>
+  </div>
+  {% set band_class = 'band--xl' %}{% include 'partials/band.html' %}
+  <div class="row">
+    <button type="button" class="btn btn-primary btn-lg" data-action="start" hidden>{{ icon('play') }}Start packing session</button>
+    <button type="button" class="btn btn-primary btn-lg" data-action="complete" hidden>{{ icon('check') }}Complete session</button>
+  </div>
+  <div class="grid-2">
+    <section class="panel" aria-labelledby="demo-title">
+      <h2 id="demo-title">2. Scan a book</h2>
+      <p class="muted small mb3">Tap a book to present its card. Tap it twice to show duplicate detection; tap a book that isn't required today to show an extra.</p>
+      <div class="demo-books" id="demo-books"></div>
+      <hr class="divider">
+      <button type="button" class="btn" id="demo-unknown">{{ icon('card') }}Present an unknown card</button>
+    </section>
+    <div class="stack">
+      <section class="panel" aria-labelledby="scan-title"><h2 id="scan-title">Last scan</h2><div id="last-scan" aria-live="polite"></div></section>
+      <section class="panel" aria-labelledby="checklist-title"><h2 id="checklist-title">Packing list</h2><div id="checklist"></div></section>
+      <section class="panel"><h2>Presenter steps</h2>
+        <ol class="steps small">
+          <li>Pick a day, then start a packing session.</li><li>Scan a few books and watch progress rise.</li>
+          <li>Point out the books still missing.</li><li>Scan the missing book.</li>
+          <li>The band turns green: BAG READY.</li><li>Complete the session to show the summary.</li>
+        </ol></section>
+      <div id="session-info" hidden></div>
+    </div>
+  </div>
+</div>
+{% include 'partials/summary_dialog.html' %}
+<script type="application/json" id="initial-state">{{ state|tojson }}</script>
+<script type="application/json" id="demo-book-list">{{ books|tojson }}</script>
+{% endblock %}
+{% block scripts %}<script src="{{ static_url('js/live.js') }}" defer></script><script src="{{ static_url('js/exhibition.js') }}" defer></script>{% endblock %}

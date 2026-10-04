@@ -1,0 +1,2 @@
+# Only needed if your RFID reader shows up as a serial port (/dev/ttyUSB0, /dev/ttyACM0)
+pyserial>=3.5

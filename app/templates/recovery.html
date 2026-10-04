@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import icon, csrf with context %}
+{% block title %}Database needs attention{% endblock %}
+{% block content %}
+<div class="page">
+  <div class="alert alert--err" role="alert">{{ icon('alert') }}<div>
+    <h1>The database needs attention</h1>
+    <p>{{ error.reason }}</p>
+    <p class="small">Nothing was deleted or recreated. The damaged file is never removed automatically.</p></div></div>
+  <section class="panel stack"><h2>Restore a backup</h2>
+    {% if backups %}
+    <ul class="books">{% for b in backups %}<li><span class="name">{{ b.name }}</span><span class="muted small">{{ b.size_kb }} KB · {{ b.created }}</span>
+      <form method="post" action="{{ url_for('recovery.restore_named') }}">{{ csrf() }}<input type="hidden" name="name" value="{{ b.name }}"><button class="btn btn-sm btn-primary">Restore</button></form></li>{% endfor %}</ul>
+    {% else %}<p class="muted">No automatic backups were found.</p>{% endif %}
+    <form method="post" action="{{ url_for('recovery.restore_upload') }}" enctype="multipart/form-data" class="inline-form">
+      {{ csrf() }}<div class="field"><label class="label" for="rf">Or upload a backup file (.db)</label><input class="input" id="rf" type="file" name="backup_file" accept=".db" required></div>
+      <button class="btn">Restore uploaded file</button></form>
+  </section>
+  {% if error.corrupt %}
+  <section class="panel stack"><h2>Start over</h2>
+    <p class="muted">Creates a new empty database with the demo timetable. The damaged file is kept next to it.</p>
+    <form method="post" action="{{ url_for('recovery.fresh') }}">{{ csrf() }}<button class="btn btn-danger">Start with a new database</button></form>
+  </section>
+  {% endif %}
+</div>
+{% endblock %}

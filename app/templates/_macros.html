@@ -1,0 +1,33 @@
+{% macro icon(name) -%}<svg class="icon" aria-hidden="true" focusable="false"><use href="{{ static_url('icons.svg') }}#{{ name }}"></use></svg>{%- endmacro %}
+
+{% macro csrf() -%}<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{%- endmacro %}
+
+{% macro return_to() -%}<input type="hidden" name="return_to" value="{{ request.full_path.rstrip('?') }}">{%- endmacro %}
+
+{% macro reader_chip(reader, chip_id='chip-reader') -%}
+{% set labels = {'connected': ('Connected', 'ok', 'check-circle'), 'disabled': ('Not set up', '', 'minus-circle'),
+   'unavailable': ('Unavailable', 'warn', 'alert'), 'disconnected': ('Disconnected', 'warn', 'plug'), 'error': ('Error', 'err', 'alert')} %}
+{% set l = labels.get(reader.state, ('Unknown', '', 'info')) %}
+<a class="chip {{ 'chip--' ~ l[1] if l[1] }}" id="{{ chip_id }}" data-reader-chip href="{{ url_for('admin.settings') }}#reader" title="{{ reader.message }}">{{ icon(l[2]) }}<span><span class="chip__full">RFID reader</span><span class="chip__short">Reader</span>: <strong>{{ l[0] }}</strong></span></a>
+{%- endmacro %}
+
+{% macro pager(data, endpoint, params) -%}
+{% if data.pages > 1 %}
+<nav class="pager" aria-label="Pagination">
+  <span class="muted small">Page {{ data.page }} of {{ data.pages }} ({{ data.total }} results)</span>
+  <span class="row">
+    {% if data.page > 1 %}<a class="btn btn-sm" href="{{ url_for(endpoint, page=data.page - 1, **params) }}">Previous</a>{% endif %}
+    {% if data.page < data.pages %}<a class="btn btn-sm" href="{{ url_for(endpoint, page=data.page + 1, **params) }}">Next</a>{% endif %}
+  </span>
+</nav>
+{% endif %}
+{%- endmacro %}
+
+{% macro outcome_badge(outcome, labels) -%}
+{% set kind = {'accepted': 'ok', 'duplicate': 'warn', 'not_required': 'extra', 'unknown_card': 'err', 'disabled': 'warn', 'no_session': 'warn'}.get(outcome, '') %}
+<span class="badge {{ 'badge--' ~ kind if kind }}">{{ labels.get(outcome or 'legacy', 'Earlier version') }}</span>
+{%- endmacro %}
+
+{% macro source_badge(source) -%}
+{% if source == 'SIMULATION' %}<span class="badge badge--sim">{{ icon('monitor') }}Simulated</span>{% else %}<span class="badge">{{ icon('card') }}Real card</span>{% endif %}
+{%- endmacro %}

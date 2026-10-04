@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import icon, csrf, return_to with context %}
+{% block title %}Timetable{% endblock %}
+{% block content %}
+<div class="page">
+  <div class="page-head"><div><h1>Timetable</h1><p>The books needed each day come from these periods. Changes apply to the next packing session.</p></div></div>
+  {% if not view %}
+  <section class="panel"><div class="empty">{{ icon('calendar') }}<p>The timetable has no days yet.</p></div></section>
+  {% else %}
+  <nav class="tabs" aria-label="Days">{% for d in days %}<a href="{{ url_for('admin.timetable', day=d.id) }}" {% if d.id == view.id %}aria-current="page"{% endif %}>{{ d.name }}</a>{% endfor %}</nav>
+  <section class="panel panel--flush" aria-labelledby="day-title">
+    <div class="panel__head"><h2 id="day-title">{{ view.name }}</h2>
+      <p class="muted small">{{ view.required|length }} book{{ '' if view.required|length == 1 else 's' }} required{% if view.entries|length != view.required|length %} (repeated or disabled books are counted once or skipped){% endif %}</p></div>
+    {% for e in view.entries %}
+    <div class="period">
+      <span class="period__no">{{ loop.index }}</span>
+      <form method="post" action="{{ url_for('admin.entry_set_book', entry_id=e.id) }}" class="inline-form">{{ csrf() }}{{ return_to() }}
+        <div class="field"><label class="visually-hidden" for="sel-{{ e.id }}">Subject for period {{ loop.index }}</label>
+          <select class="select" id="sel-{{ e.id }}" name="book_id">
+            {% for b in books %}<option value="{{ b.id }}" {% if b.id == e.book_id %}selected{% endif %}>{{ b.name }}</option>{% endfor %}
+            {% if not e.is_active %}<option value="{{ e.book_id }}" selected disabled>{{ e.book_name }} (disabled)</option>{% endif %}
+          </select></div>
+        <button class="btn btn-sm" type="submit">Change</button></form>
+      <div class="row">
+        <form method="post" action="{{ url_for('admin.entry_move', entry_id=e.id) }}">{{ csrf() }}{{ return_to() }}<input type="hidden" name="direction" value="up"><button class="btn btn-icon" type="submit" {% if loop.first %}disabled{% endif %} aria-label="Move period {{ loop.index }} up">{{ icon('up') }}</button></form>
+        <form method="post" action="{{ url_for('admin.entry_move', entry_id=e.id) }}">{{ csrf() }}{{ return_to() }}<input type="hidden" name="direction" value="down"><button class="btn btn-icon" type="submit" {% if loop.last %}disabled{% endif %} aria-label="Move period {{ loop.index }} down">{{ icon('down') }}</button></form>
+        <form method="post" action="{{ url_for('admin.entry_remove', entry_id=e.id) }}" data-confirm="Remove period {{ loop.index }} ({{ e.book_name }}) from {{ view.name }}?" data-confirm-label="Remove period">{{ csrf() }}{{ return_to() }}<button class="btn btn-icon btn-danger" type="submit" aria-label="Remove period {{ loop.index }}">{{ icon('trash') }}</button></form>
+      </div>
+    </div>
+    {% else %}<div class="empty">{{ icon('book') }}<p>No periods on {{ view.name }}. Add one below.</p></div>{% endfor %}
+    <form method="post" action="{{ url_for('admin.entry_add', day_id=view.id) }}" class="inline-form period-add">{{ csrf() }}{{ return_to() }}
+      <div class="field"><label class="label" for="add-book">Add a period</label><select class="select" id="add-book" name="book_id" required>{% for b in books %}<option value="{{ b.id }}">{{ b.name }}</option>{% endfor %}</select></div>
+      <button class="btn btn-primary" type="submit" {% if not books %}disabled{% endif %}>{{ icon('plus') }}Add period</button></form>
+  </section>
+  <section class="panel stack" aria-labelledby="days-title"><h2 id="days-title">Manage days</h2>
+    <form method="post" action="{{ url_for('admin.day_rename', day_id=view.id) }}" class="inline-form">{{ csrf() }}{{ return_to() }}
+      <div class="field"><label class="label" for="rename-day">Rename {{ view.name }}</label><input class="input" id="rename-day" name="name" value="{{ view.name }}" maxlength="30" required></div>
+      <button class="btn" type="submit">Rename</button></form>
+    <div class="row">
+      <form method="post" action="{{ url_for('admin.day_move', day_id=view.id) }}">{{ csrf() }}<input type="hidden" name="direction" value="up"><input type="hidden" name="current_day" value="{{ view.id }}"><button class="btn" type="submit">{{ icon('up') }}Move earlier</button></form>
+      <form method="post" action="{{ url_for('admin.day_move', day_id=view.id) }}">{{ csrf() }}<input type="hidden" name="direction" value="down"><input type="hidden" name="current_day" value="{{ view.id }}"><button class="btn" type="submit">{{ icon('down') }}Move later</button></form>
+      <form method="post" action="{{ url_for('admin.day_delete', day_id=view.id) }}" data-confirm="Delete {{ view.name }} and all its periods?" data-confirm-label="Delete day">{{ csrf() }}<button class="btn btn-danger" type="submit">{{ icon('trash') }}Delete {{ view.name }}</button></form>
+    </div>
+    <hr class="divider">
+    <form method="post" action="{{ url_for('admin.day_add') }}" class="inline-form">{{ csrf() }}
+      <div class="field"><label class="label" for="new-day">Add a day (for example Saturday)</label><input class="input" id="new-day" name="name" maxlength="30" required></div>
+      <button class="btn" type="submit">{{ icon('plus') }}Add day</button></form>
+  </section>
+  {% endif %}
+</div>
+{% endblock %}

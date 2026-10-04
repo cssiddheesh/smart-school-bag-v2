@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import icon, csrf, reader_chip with context %}
+{% block title %}Settings{% endblock %}
+{% block content %}
+<div class="page">
+  <div class="page-head"><div><h1>Settings</h1><p>Local time is {{ now_label }} ({{ cfg.timezone }}).</p></div>
+    {% if pin_enabled %}<form method="post" action="{{ url_for('auth.lock') }}">{{ csrf() }}<button class="btn" type="submit">{{ icon('lock') }}Lock admin tools</button></form>{% endif %}</div>
+  <nav class="settings-nav" aria-label="Settings sections"><a href="#general">General</a><a href="#reader">Reader &amp; demo</a><a href="#security">Security</a><a href="#backup">Backup</a><a href="#system">System</a></nav>
+
+  <section class="panel stack" id="general" aria-labelledby="g-title"><h2 id="g-title">General</h2>
+    <form method="post" action="{{ url_for('admin.settings_general') }}" class="stack">{{ csrf() }}
+      <div class="form-grid">
+        <div class="field"><label class="label" for="school_name">School name</label><input class="input" id="school_name" name="school_name" value="{{ cfg.school_name }}" maxlength="60" required></div>
+        <div class="field"><label class="label" for="student_name">Student name</label><input class="input" id="student_name" name="student_name" value="{{ cfg.student_name }}" maxlength="40"></div>
+        <div class="field"><label class="label" for="default_day">Default day</label><select class="select" id="default_day" name="default_day">{% for d in days %}<option value="{{ d.name }}" {% if d.name == cfg.default_day %}selected{% endif %}>{{ d.name }}</option>{% endfor %}</select></div>
+        <div class="field"><label class="label" for="timezone">Timezone</label><input class="input" id="timezone" name="timezone" value="{{ cfg.timezone }}" maxlength="64" required><span class="hint">For example Asia/Kolkata</span></div>
+        <div class="field"><label class="label" for="debounce_seconds">Ignore repeat reads for (seconds)</label><input class="input" id="debounce_seconds" name="debounce_seconds" type="number" min="0" max="30" value="{{ cfg.debounce_seconds }}"><span class="hint">Readers repeat while a card is held on them.</span></div>
+      </div>
+      <label class="check"><input type="checkbox" name="auto_start_session" {% if cfg.auto_start_session %}checked{% endif %}><span><strong>Start a session automatically on the first scan</strong><br><span class="hint">Students can just tap a book card without touching the screen.</span></span></label>
+      <div><button class="btn btn-primary" type="submit">Save general settings</button></div>
+    </form></section>
+
+  <section class="panel stack" id="reader" aria-labelledby="r-title"><h2 id="r-title">RFID reader &amp; demo mode</h2>
+    <div class="status-line" id="reader-status-line" data-reader-state="{{ reader_status.state }}">{{ reader_chip(reader_status, 'chip-reader-settings') }}<span class="muted" id="reader-message">{{ reader_status.message }}</span></div>
+    <form method="post" action="{{ url_for('admin.settings_reader') }}" class="stack">{{ csrf() }}
+      <div class="form-grid">
+        <div class="field"><label class="label" for="reader_type">Reader type</label><select class="select" id="reader_type" name="reader_type">
+          {% for t, label in [('none', 'None (no reader connected)'), ('keyboard', 'USB keyboard-style reader (experimental)'), ('serial', 'USB serial reader (experimental)')] %}<option value="{{ t }}" {% if cfg.reader_type == t %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+        <div class="field"><label class="label" for="reader_device">Device path</label><input class="input uid" id="reader_device" name="reader_device" value="{{ cfg.reader_device }}" maxlength="200" placeholder="/dev/input/by-id/…  or  /dev/ttyUSB0" spellcheck="false"></div>
+        <div class="field"><label class="label" for="reader_baud">Serial baud rate</label><select class="select" id="reader_baud" name="reader_baud">{% for b in baud_rates %}<option value="{{ b }}" {% if cfg.reader_baud == b %}selected{% endif %}>{{ b }}</option>{% endfor %}</select></div>
+      </div>
+      <label class="check"><input type="checkbox" name="demo_enabled" {% if cfg.demo_enabled %}checked{% endif %}><span><strong>Demo mode</strong><br><span class="hint">Shows the Exhibition page and allows simulated scans. Simulated scans are always labelled.</span></span></label>
+      <div><button class="btn btn-primary" type="submit">Save reader settings</button></div>
+    </form>
+    <div class="alert alert--info">{{ icon('info') }}<p class="small">The two reader types are experimental and have not been tested with your hardware. “Connected” only means the device could be opened. Use the live read log below to confirm what the reader really sends.</p></div>
+    <h3>Live read log</h3>
+    <div class="panel panel--flush"><div class="table-wrap"><table><thead><tr><th>Time</th><th>Raw data received</th></tr></thead><tbody id="raw-log">
+      {% for r in raw_log %}<tr><td>{{ r.time|localtime('%H:%M:%S') }}</td><td class="raw">{{ r.raw }}</td></tr>{% else %}<tr><td colspan="2" class="muted">Nothing received yet. Hold a card to the reader.</td></tr>{% endfor %}</tbody></table></div></div>
+  </section>
+
+  <section class="panel stack" id="security" aria-labelledby="s-title"><h2 id="s-title">Security</h2>
+    <p class="muted">An admin PIN protects Books, Timetable, Settings and backups. It is optional and off by default so demonstrations stay quick.</p>
+    <span class="badge {{ 'badge--ok' if pin_enabled else '' }}">{{ 'PIN is on' if pin_enabled else 'PIN is off' }}</span>
+    <form method="post" action="{{ url_for('admin.settings_pin') }}" class="form-grid">{{ csrf() }}
+      <div class="field"><label class="label" for="pin">{{ 'New PIN' if pin_enabled else 'PIN (4–12 digits)' }}</label><input class="input" id="pin" name="pin" type="password" inputmode="numeric" autocomplete="new-password" maxlength="12" required></div>
+      <div class="field"><label class="label" for="pin_confirm">Repeat PIN</label><input class="input" id="pin_confirm" name="pin_confirm" type="password" inputmode="numeric" autocomplete="new-password" maxlength="12" required></div>
+      <div><button class="btn btn-primary" type="submit">{{ 'Change PIN' if pin_enabled else 'Turn on PIN' }}</button></div></form>
+    {% if pin_enabled %}<form method="post" action="{{ url_for('admin.settings_pin') }}" data-confirm="Remove the admin PIN? Anyone on this network could change settings." data-confirm-label="Remove PIN">{{ csrf() }}<input type="hidden" name="action" value="remove"><button class="btn btn-danger" type="submit">Remove PIN</button></form>{% endif %}
+  </section>
+
+  <section class="panel stack" id="backup" aria-labelledby="b-title"><h2 id="b-title">Backup &amp; restore</h2>
+    <p class="muted">Backups are consistent copies of the whole database (books, timetable, history, settings). A safety copy is made automatically before upgrades, restores and clearing history.</p>
+    <form method="post" action="{{ url_for('admin.backup_create') }}">{{ csrf() }}<button class="btn btn-primary" type="submit">{{ icon('download') }}Create backup now</button></form>
+    {% if backups %}<ul class="books">{% for b in backups %}<li><span class="name small">{{ b.name }}</span><span class="muted small">{{ b.size_kb }} KB · {{ b.created }}</span>
+      <a class="btn btn-sm" href="{{ url_for('admin.backup_download', name=b.name) }}">{{ icon('download') }}Download</a>
+      <form method="post" action="{{ url_for('admin.backup_restore', name=b.name) }}" data-confirm="Restore {{ b.name }}? Current data is backed up first, then replaced." data-confirm-label="Restore">{{ csrf() }}<button class="btn btn-sm" type="submit">Restore</button></form>
+      <form method="post" action="{{ url_for('admin.backup_delete', name=b.name) }}" data-confirm="Delete this backup file?" data-confirm-label="Delete backup">{{ csrf() }}<button class="btn btn-sm btn-danger" type="submit" aria-label="Delete {{ b.name }}">{{ icon('trash') }}</button></form></li>{% endfor %}</ul>
+    {% else %}<p class="muted">No backups yet.</p>{% endif %}
+    <form method="post" action="{{ url_for('admin.backup_upload') }}" enctype="multipart/form-data" class="inline-form" data-confirm="Restore from the chosen file? Current data is backed up first, then replaced." data-confirm-label="Restore">{{ csrf() }}
+      <div class="field"><label class="label" for="backup_file">Restore from a downloaded backup (.db)</label><input class="input" id="backup_file" type="file" name="backup_file" accept=".db,application/vnd.sqlite3" required></div>
+      <button class="btn" type="submit">Restore file</button></form>
+  </section>
+
+  <section class="panel stack" id="system" aria-labelledby="y-title"><h2 id="y-title">System</h2>
+    <dl class="facts">
+      <div><dt>App version</dt><dd>{{ system.version }}</dd></div><div><dt>Python</dt><dd>{{ system.python }} on {{ system.platform }}</dd></div>
+      <div><dt>Database</dt><dd class="raw">{{ system.database_path }}</dd></div><div><dt>Database size</dt><dd>{{ system.database_kb }} KB (schema {{ system.schema_version }}, {{ system.journal_mode }})</dd></div>
+      <div><dt>Running for</dt><dd>{{ system.uptime_minutes }} min</dd></div></dl>
+    <h3>Recent events</h3>
+    {% if events %}<div class="panel panel--flush"><div class="table-wrap"><table class="table--stack"><thead><tr><th>Time</th><th>Area</th><th>Event</th></tr></thead><tbody>
+      {% for e in events %}<tr><td data-label="Time">{{ e.time_label }}</td><td data-label="Area"><span class="badge {{ {'warning': 'badge--warn', 'error': 'badge--err'}.get(e.level, '') }}">{{ e.category }}</span></td><td data-label="Event">{{ e.message }}</td></tr>{% endfor %}</tbody></table></div></div>
+    {% else %}<p class="muted">No events yet.</p>{% endif %}
+  </section>
+</div>
+{% endblock %}
+{% block scripts %}<script src="{{ static_url('js/settings.js') }}" defer></script>{% endblock %}
