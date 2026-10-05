@@ -6,7 +6,8 @@ import atexit
 import logging
 from typing import Any
 
-from flask import Flask, render_template, request, url_for
+from flask import Flask, current_app, render_template, request, url_for
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from .config import load_config, load_secret_key
 from .db import Database, initialize
@@ -19,13 +20,14 @@ from .logging_setup import setup_logging
 log = logging.getLogger("ssb")
 
 _DB_EXEMPT = {"recovery.page", "recovery.restore_named", "recovery.restore_upload", "recovery.fresh",
-              "pages.healthz", "static"}
+              "pages.health", "pages.healthz", "static"}
 
 
 def create_app(overrides: dict[str, Any] | None = None) -> Flask:
     config = load_config(overrides)
     app = Flask(__name__)
     app.config.from_mapping(config)
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1)
     app.json.sort_keys = False
     app.config["LARGE_UPLOAD_ENDPOINTS"] = ("admin.backup_upload", "recovery.restore_upload")
 
@@ -47,6 +49,32 @@ def create_app(overrides: dict[str, Any] | None = None) -> Flask:
 
     init_security(app)
     register_error_handlers(app)
+
+    @app.before_request
+    def _handle_preflight():
+        if request.method != "OPTIONS":
+            return None
+        origin = request.headers.get("Origin")
+        response = current_app.make_default_options_response()
+        if origin and origin in app.config.get("ALLOWED_ORIGINS", []):
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+            response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+            response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-CSRF-Token"
+            response.headers["Access-Control-Max-Age"] = "86400"
+            response.headers["Vary"] = "Origin"
+        return response
+
+    @app.after_request
+    def _enable_cors(response):
+        origin = request.headers.get("Origin")
+        if origin in app.config.get("ALLOWED_ORIGINS", []):
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+            response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+            response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-CSRF-Token"
+            response.headers["Vary"] = "Origin"
+        return response
 
     @app.before_request
     def _database_guard():

@@ -14,6 +14,12 @@ from typing import Any
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 APP_VERSION = "2.0.0"
+_DEFAULT_ALLOWED_ORIGINS = (
+    "https://smartschoolbag.pages.dev",
+    "https://smartbag.cssiddheesh.in",
+    "http://localhost:5173",
+    "http://localhost:3000",
+)
 
 
 def _int(value: str | None, default: int) -> int:
@@ -21,6 +27,12 @@ def _int(value: str | None, default: int) -> int:
         return int(value) if value not in (None, "") else default
     except ValueError:
         return default
+
+
+def _allowed_origins(value: str | None) -> list[str]:
+    raw = value or ",".join(_DEFAULT_ALLOWED_ORIGINS)
+    origins = [origin.strip() for origin in raw.split(",") if origin.strip()]
+    return origins or list(_DEFAULT_ALLOWED_ORIGINS)
 
 
 def load_config(overrides: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -33,21 +45,27 @@ def load_config(overrides: dict[str, Any] | None = None) -> dict[str, Any]:
         "DATABASE_PATH": Path(env.get("SCHOOLBAG_DATABASE") or data_dir / "schoolbag.db").expanduser(),
         "BACKUP_DIR": data_dir / "backups",
         "LOG_DIR": data_dir / "logs",
-        "HOST": env.get("SCHOOLBAG_HOST", "0.0.0.0"),
-        "PORT": _int(env.get("SCHOOLBAG_PORT"), 5000),
+        "HOST": env.get("HOST") or env.get("SCHOOLBAG_HOST") or "0.0.0.0",
+        "PORT": _int(env.get("PORT") or env.get("SCHOOLBAG_PORT"), 8000),
         "LOG_LEVEL": env.get("SCHOOLBAG_LOG_LEVEL", "INFO").upper(),
         "SECRET_KEY": env.get("FLASK_SECRET_KEY") or None,
+        "ALLOWED_ORIGINS": _allowed_origins(env.get("ALLOWED_ORIGINS")),
         "START_READER": True,
         # Request limits: forms are tiny; only database restore may upload a file.
         "MAX_CONTENT_LENGTH": 64 * 1024,
         "MAX_RESTORE_BYTES": 32 * 1024 * 1024,
         "SESSION_COOKIE_NAME": "ssb_session",
         "SESSION_COOKIE_HTTPONLY": True,
-        "SESSION_COOKIE_SAMESITE": "Lax",
+        "SESSION_COOKIE_SAMESITE": "None",
+        "SESSION_COOKIE_SECURE": True,
         "SEND_FILE_MAX_AGE_DEFAULT": 12 * 3600,
     }
     if overrides:
         config.update(overrides)
+    for key in ("DATA_DIR", "DATABASE_PATH", "BACKUP_DIR", "LOG_DIR"):
+        value = config.get(key)
+        if isinstance(value, str):
+            config[key] = Path(value).expanduser()
     return config
 
 

@@ -164,3 +164,21 @@ They use temporary databases and never touch `data/`.
 Copy your old `data/schoolbag.db` into `data/` and start the app. It is upgraded in place after an automatic backup
 (`data/backups/*-auto-upgrade.db`): your books, card assignments, timetable and scan history are kept. Old scans appear in History
 as *Earlier version*. The old environment variables `DEMO_MODE` and `DEFAULT_DAY` are now settings in the app.
+
+## Deployment
+
+This repository is a Flask backend with Jinja + vanilla JavaScript in the browser; there is no Vite/React frontend build in the repo itself. It is served from the Raspberry Pi, and the public API is exposed through Cloudflare Tunnel.
+
+- Pi: run `sudo bash smartbag-tunnel-install.sh`, then start the backend with the commands below.
+- Cloudflare Pages: connect the repo to a Pages project, set the build command to the static frontend command if you add one, set the output directory to `dist`, and add the env var `VITE_API_URL` or `NEXT_PUBLIC_API_URL` with the value `https://api2.cssiddheesh.in`.
+- Custom domain: add `smartbag.cssiddheesh.in` in the Pages project custom domains.
+- Quick test: `curl https://api2.cssiddheesh.in/health`
+
+Backend start on the Pi:
+```bash
+cd /home/<your-user>/smart-school-bag-v2
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+PORT=8000 ALLOWED_ORIGINS="https://smartschoolbag.pages.dev,https://smartbag.cssiddheesh.in,http://localhost:5173,http://localhost:3000" python run.py
+```

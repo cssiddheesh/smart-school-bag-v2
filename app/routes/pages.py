@@ -74,6 +74,11 @@ def session_detail(session_id: int):
                            tz=s.settings.get("timezone"), outcome_labels=OUTCOME_LABELS)
 
 
+@bp.get("/health")
+def health():
+    return {"status": "ok"}
+
+
 @bp.get("/healthz")
 def healthz():
     s = svc()

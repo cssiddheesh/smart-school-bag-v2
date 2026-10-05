@@ -3,6 +3,11 @@ __pycache__/
 *.pyc
 .idea/
 .vscode/
+.env
+.env.*
+!.env.example
+!.env.development
+!.env.production
 data/*.db
 data/*.db-wal
 data/*.db-shm
