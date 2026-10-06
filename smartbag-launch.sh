@@ -48,7 +48,7 @@ case "${1:-start}" in
 
     if [ ! -x "$SCRIPT_DIR/.venv/bin/python" ] || [ ! -f /etc/systemd/system/$APP_SERVICE ]; then
       info "Installing the backend service and Python dependencies..."
-      "$SCRIPT_DIR/scripts/install.sh"
+      bash "$SCRIPT_DIR/scripts/install.sh"
     fi
 
     if ! sudo test -f "$TUNNEL_CONFIG"; then
