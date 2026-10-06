@@ -167,12 +167,14 @@ as *Earlier version*. The old environment variables `DEMO_MODE` and `DEFAULT_DAY
 
 ## Deployment
 
-This repository is a Flask backend with Jinja + vanilla JavaScript in the browser; there is no Vite/React frontend build in the repo itself. It is served from the Raspberry Pi, and the public API is exposed through Cloudflare Tunnel.
+This repository is a Flask app with Jinja-rendered pages and vanilla JavaScript, not a static frontend project. It has no Cloudflare Pages build command or output directory. Serve the site and API from the Raspberry Pi through Cloudflare Tunnel.
 
-- Pi: run `sudo bash smartbag-tunnel-install.sh`, then start the backend with the commands below.
-- Cloudflare Pages: connect the repo to a Pages project, set the build command to the static frontend command if you add one, set the output directory to `dist`, and add the env var `VITE_API_URL` or `NEXT_PUBLIC_API_URL` with the value `https://api2.cssiddheesh.in`.
-- Custom domain: add `smartbag.cssiddheesh.in` in the Pages project custom domains.
-- Quick test: `curl https://api2.cssiddheesh.in/health`
+- One-click start: on the Pi, run `./smartbag-launch.sh`. On the first run it creates/installs the backend service and dependencies, configures Cloudflare Tunnel if needed, then starts both services. It syncs the backend port with the tunnel configuration in `/etc/default/smart-school-bag`. Run it from an interactive terminal as your normal user.
+- Manage it later with `./smartbag-launch.sh status`, `./smartbag-launch.sh restart`, or `./smartbag-launch.sh stop`.
+- Do not connect this Flask repo to Cloudflare Pages. Remove `smartbag.cssiddheesh.in` from any Pages project first; that hostname must point to the Tunnel instead.
+- The tunnel installer routes both `smartbag.cssiddheesh.in` and `api2.cssiddheesh.in` to the Flask app on port 8000.
+- To install/start the backend manually instead, run `./scripts/install.sh`.
+- Quick tests: `curl https://smartbag.cssiddheesh.in/health` and `curl https://api2.cssiddheesh.in/health`.
 
 Backend start on the Pi:
 ```bash
@@ -180,5 +182,5 @@ cd /home/<your-user>/smart-school-bag-v2
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-PORT=8000 ALLOWED_ORIGINS="https://smartschoolbag.pages.dev,https://smartbag.cssiddheesh.in,http://localhost:5173,http://localhost:3000" python run.py
+PORT=8000 python run.py
 ```

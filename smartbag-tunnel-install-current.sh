@@ -5,6 +5,7 @@ set -euo pipefail
 
 TUNNEL_NAME="smartbag"
 HOSTNAME_DEFAULT="api2.cssiddheesh.in"
+SITE_HOSTNAME_DEFAULT="smartbag.cssiddheesh.in"
 PORT_DEFAULT="8000"
 CF_DIR="/etc/cloudflared"
 
@@ -46,6 +47,7 @@ ok "cloudflared installed: $(cloudflared --version | head -n1)"
 
 ask() { local reply; read -r -p "$1 [$2]: " reply < /dev/tty; echo "${reply:-$2}"; }
 HOSTNAME=$(ask "Public hostname for your backend" "$HOSTNAME_DEFAULT")
+SITE_HOSTNAME=$(ask "Public hostname for the Smart School Bag site" "$SITE_HOSTNAME_DEFAULT")
 PORT=$(ask "Local backend port on this Pi" "$PORT_DEFAULT")
 [[ "$PORT" =~ ^[0-9]+$ ]] || die "Port must be a number."
 [ "$PORT" -ge 1 ] && [ "$PORT" -le 65535 ] || die "Port must be between 1 and 65535."
@@ -73,7 +75,9 @@ ok "Tunnel ID: $TUNNEL_ID"
 
 info "Routing DNS hostname '$HOSTNAME' to the tunnel..."
 cloudflared tunnel route dns --overwrite-dns "$TUNNEL_NAME" "$HOSTNAME"
-ok "DNS route configured."
+info "Routing DNS hostname '$SITE_HOSTNAME' to the tunnel..."
+cloudflared tunnel route dns --overwrite-dns "$TUNNEL_NAME" "$SITE_HOSTNAME"
+ok "DNS routes configured."
 
 mkdir -p "$CF_DIR"
 cp "$CRED_SRC" "$CF_DIR/${TUNNEL_ID}.json"
@@ -85,6 +89,8 @@ cat > "$CF_DIR/config.yml" <<CFG
 
 ingress:
   - hostname: ${HOSTNAME}
+    service: http://127.0.0.1:${PORT}
+  - hostname: ${SITE_HOSTNAME}
     service: http://127.0.0.1:${PORT}
   - service: http_status:404
 CFG
@@ -112,15 +118,12 @@ cat <<SUMMARY
  SMART SCHOOL BAG CLOUDFLARE TUNNEL - DONE
 =====================================================
 
+Website:    https://${SITE_HOSTNAME}
 Public API: https://${HOSTNAME}
 Tunnel:     ${TUNNEL_NAME}
 Tunnel ID:  ${TUNNEL_ID}
-Forwarding: https://${HOSTNAME} -> http://127.0.0.1:${PORT}
+Forwarding: https://${SITE_HOSTNAME} and https://${HOSTNAME} -> http://127.0.0.1:${PORT}
 Config:     ${CF_DIR}/config.yml
-
-Frontend:
-  https://smartschoolbag.pages.dev
-  https://smartbag.cssiddheesh.in
 
 IMPORTANT:
   This script configures the Cloudflare Tunnel.
@@ -129,6 +132,7 @@ IMPORTANT:
 Test after starting the backend:
   curl http://127.0.0.1:${PORT}/health
   curl https://${HOSTNAME}/health
+  curl https://${SITE_HOSTNAME}/health
 
 Useful commands:
   systemctl status cloudflared

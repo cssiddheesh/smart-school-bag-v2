@@ -34,5 +34,5 @@ sleep 2
 systemctl --no-pager --lines=5 status smart-school-bag.service || true
 IP="$(hostname -I 2>/dev/null | awk '{print $1}')"
 echo
-echo "Smart School Bag is running.  Open:  http://${IP:-<pi-address>}:5000"
+echo "Smart School Bag is running.  Open:  http://${IP:-<pi-address>}:8000"
 echo "Logs:   journalctl -u smart-school-bag -f"
