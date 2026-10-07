@@ -13,6 +13,70 @@
   const live = (SSB.live = { state: null, rev: null, lastScanId: null, handlers: [] });
   live.onRender = (handler) => live.handlers.push(handler);
 
+  /* ---------- optional browser speech (keeps voice working through the website tunnel) ---------- */
+  const voice = { enabled: false };
+  function voiceSupported() {
+    return 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
+  }
+  function setVoiceControls() {
+    const toggle = $('#voice-toggle');
+    const status = $('#voice-status');
+    const stop = $('#voice-stop');
+    if (!toggle || !status) return;
+    toggle.textContent = voice.enabled ? 'Mute voice' : 'Enable voice';
+    toggle.setAttribute('aria-pressed', String(voice.enabled));
+    status.textContent = voice.enabled ? 'Voice is on for this dashboard in this browser.' :
+      'Voice is off. Enable it to hear updates on this device.';
+    if (stop) stop.hidden = !voice.enabled;
+  }
+  function speak(text) {
+    if (!voice.enabled || !text) return;
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 0.95;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utterance);
+  }
+  function bookNames(items) {
+    return items.length ? items.map((item) => item.name).join(', ') : '';
+  }
+  function packingSummary(state) {
+    if (!state.checklist.length) return 'There are no books on the timetable for ' + (state.day ? state.day.name : 'today') + '.';
+    const packed = state.checklist.filter((item) => item.present);
+    const remaining = state.checklist.filter((item) => !item.present);
+    let message = 'For ' + (state.day ? state.day.name : 'today') + ', ' + packed.length + ' of ' +
+      state.checklist.length + ' required books are packed.';
+    if (remaining.length) {
+      message += state.session ? ' Still missing: ' : ' Not scanned yet: ';
+      message += bookNames(remaining) + '.';
+    } else if (state.session) {
+      message += ' The bag is ready.';
+    }
+    if (state.extras.length) message += ' Scanned but not required today: ' + state.extras.join(', ') + '.';
+    return message;
+  }
+  function scanAnnouncement(scan, state) {
+    const name = scan.book_name || 'This card';
+    if (scan.outcome === 'accepted') {
+      const missing = state.checklist.filter((item) => !item.present);
+      return name + ' packed. ' + (missing.length ? 'Still missing: ' + bookNames(missing) + '.' : 'The bag is ready.');
+    }
+    if (scan.outcome === 'duplicate') return name + ' has already been scanned.';
+    if (scan.outcome === 'not_required') return name + ' is not required for ' + (state.day ? state.day.name : 'today') + '.';
+    if (scan.outcome === 'unknown_card') return 'Unknown card. This card is not assigned to a book.';
+    return scan.message + '.';
+  }
+  function announceState(state, previous, first) {
+    if (!voice.enabled || first) return;
+    const scan = state.last_scan;
+    const newScan = scan && scan.id !== live.lastScanId;
+    if (state.session && (!previous.session || state.session.id !== previous.session.id)) {
+      speak('Packing started for ' + state.session.day_name + '. ' +
+        (newScan ? scanAnnouncement(scan, state) : packingSummary(state)));
+    } else if (newScan) {
+      speak(scanAnnouncement(scan, state));
+    }
+  }
+
   /* ---------- rendering ---------- */
   function renderBand(state) {
     const band = $('#band');
@@ -170,10 +234,12 @@
 
   live.apply = function (state, options) {
     const first = live.state === null;
+    const previous = live.state;
     live.state = state;
     live.rev = state.revision;
     render(state);
     const scan = state.last_scan;
+    announceState(state, previous, first);
     if (scan && scan.id !== live.lastScanId) {
       if (!first && !(options && options.own)) SSB.toast(scan.message, scan.level === 'success' ? 'success' : 'warning');
       live.lastScanId = scan.id;
@@ -207,7 +273,10 @@
       const response = await SSB.api('POST', '/api/session/' + action);
       live.apply(response.data.state, { own: true });
       SSB.toast(response.message, 'success');
-      if (action === 'complete') showSummary(response.data.summary);
+      if (action === 'complete') {
+        showSummary(response.data.summary);
+        speak('Bag packed. Session complete. All ' + response.data.summary.required_count + ' required books are packed.');
+      }
     } catch (error) {
       SSB.toast(error.message, 'error');
       poll(true);
@@ -258,6 +327,28 @@
     const initial = document.getElementById('initial-state');
     if (!initial) return;
     live.apply(JSON.parse(initial.textContent));
+    setVoiceControls();
+    const voiceToggle = $('#voice-toggle');
+    if (voiceToggle) voiceToggle.addEventListener('click', () => {
+      if (!voiceSupported()) {
+        SSB.toast('Voice output is not supported by this browser.', 'warning');
+        return;
+      }
+      voice.enabled = !voice.enabled;
+      setVoiceControls();
+      if (voice.enabled) speak(packingSummary(live.state));
+      else window.speechSynthesis.cancel();
+    });
+    const voiceRepeat = $('#voice-repeat');
+    if (voiceRepeat) voiceRepeat.addEventListener('click', () => {
+      if (!voice.enabled) {
+        SSB.toast('Enable voice before reading the packing status.', 'info');
+        return;
+      }
+      speak(packingSummary(live.state));
+    });
+    const voiceStop = $('#voice-stop');
+    if (voiceStop) voiceStop.addEventListener('click', () => window.speechSynthesis.cancel());
     document.addEventListener('click', (event) => {
       const button = event.target.closest('[data-action]');
       if (button) runAction(button.dataset.action, button);

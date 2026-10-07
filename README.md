@@ -51,6 +51,13 @@ The app listens on the whole network by default. Find the Pi's address with `hos
 `http://<that address>:5000` from any device on the same Wi-Fi/LAN. Anyone on that network can open the app, so set an
 [admin PIN](#7-settings-admin-pin-and-backups) if the network is shared.
 
+### Voice packing assistant
+On the dashboard, choose **Enable voice** to hear scan confirmations and packing progress, or **Read packing status**
+to hear which books are packed and which are still missing (during a session) or not scanned yet (before one starts).
+Voice is opt-in and runs in the browser viewing the dashboard, so it works when that browser reaches the Pi through the
+Cloudflare Tunnel and requires no API key or additional service. Keep the dashboard open and allow audio in the browser.
+Speech availability and voice quality depend on the browser and device. This is local browser speech, not AI.
+
 ## 5. Demo / Exhibition mode
 Open **Exhibition** in the menu (visible while *Demo mode* is on in Settings). Suggested flow:
 
@@ -175,6 +182,12 @@ This repository is a Flask app with Jinja-rendered pages and vanilla JavaScript,
 - The tunnel installer routes both `smartbag.cssiddheesh.in` and `api2.cssiddheesh.in` to the Flask app on port 8000.
 - To install/start the backend manually instead, run `./scripts/install.sh`.
 - Quick tests: `curl https://smartbag.cssiddheesh.in/health` and `curl https://api2.cssiddheesh.in/health`.
+
+Future AI should solve a packing problem, such as identifying books that are repeatedly missed and giving a short
+personalized reminder from actual timetable and scan history. Readiness and missing-book decisions must remain
+deterministic in the app; an AI response should only explain or suggest, never mark a book as packed. Any Groq or
+OpenRouter request should be optional and made by the Pi backend, with API keys kept on the Pi and never sent to the
+browser. Free API quotas and availability can change. OCR is not part of this plan.
 
 Backend start on the Pi:
 ```bash

@@ -20,6 +20,8 @@ class PageTests(AppCase):
         response = self.client().get("/")
         html = response.get_data(as_text=True)
         self.assertIn('id="initial-state"', html)
+        self.assertIn('id="voice-toggle"', html)
+        self.assertIn('id="voice-repeat"', html)
         self.assertIn("default-src 'self'", response.headers["Content-Security-Policy"])
         self.assertEqual(response.headers["X-Frame-Options"], "DENY")
         self.assertEqual(response.headers["X-Content-Type-Options"], "nosniff")

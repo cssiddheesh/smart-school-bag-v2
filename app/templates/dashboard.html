@@ -15,6 +15,18 @@
     </div>
   </div>
   {% include 'partials/band.html' %}
+  <section class="panel stack" aria-labelledby="voice-title">
+    <div>
+      <h2 id="voice-title">Voice packing assistant</h2>
+      <p class="muted">Hear scan confirmations and read out which books are packed or still need scanning.</p>
+    </div>
+    <div class="row">
+      <button type="button" class="btn" id="voice-toggle" aria-pressed="false">Enable voice</button>
+      <button type="button" class="btn" id="voice-repeat">Read packing status</button>
+      <button type="button" class="btn" id="voice-stop" hidden>Stop speaking</button>
+    </div>
+    <p class="small muted" id="voice-status" role="status">Voice is off. Enable it to hear updates on this device.</p>
+  </section>
   <div class="grid-2">
     <section class="panel" aria-labelledby="checklist-title">
       <h2 id="checklist-title">Books for the day</h2>
